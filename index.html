@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>AI Chatbot - 賢い/バカ切り替え</title>
+    <title>AI Chatbot</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Kiwi+Maru&display=swap" rel="stylesheet">
 
     <style>
-        /* スタイルは前回と同じ */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             background: #1e1e2f;
@@ -38,9 +37,64 @@
         .sub {
             color: #ccc;
             font-size: 0.95rem;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
+        /* ===== APIキー設定エリア ===== */
+        .key-area {
+            background: #1e1e32;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #444;
+        }
+        .key-area .key-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 0.3rem;
+            font-family: 'Mochiy Pop One', sans-serif;
+        }
+        .key-area .key-row {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .key-area .key-row input {
+            flex: 1;
+            background: #1e1e32;
+            border: 2px solid #444;
+            padding: 0.6rem 1rem;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.8rem;
+            font-family: 'Kiwi Maru', sans-serif;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .key-area .key-row input:focus { border-color: #ffb3c6; }
+        .key-area .key-row input::placeholder { color: #666; }
+        .key-area .key-row button {
+            background: #ffb3c6;
+            color: #1e1e2f;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-family: 'Mochiy Pop One', sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .key-area .key-row button:hover { background: #ff8fab; }
+        .key-area .key-status {
+            font-size: 0.7rem;
+            color: #555;
+            margin-top: 0.3rem;
+        }
+        .key-area .key-status .set { color: #7bed9f; }
+        .key-area .key-status .not-set { color: #ff6b6b; }
+
+        /* ===== モード切替 ===== */
         .mode-toggle {
             display: flex;
             gap: 0.75rem;
@@ -170,8 +224,13 @@
             color: #555;
             text-align: center;
         }
-        .footer a { color: #ffb3c6; text-decoration: none; }
-        .footer a:hover { text-decoration: underline; }
+        .footer a {
+            color: #ffb3c6;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
 
         .spinner {
             display: inline-block;
@@ -205,34 +264,46 @@
             .input-row { flex-direction: column; }
             .input-row button { width: 100%; }
             .mode-toggle button { font-size: 0.8rem; padding: 0.5rem; }
+            .key-area .key-row { flex-direction: column; }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>🤖 AI Chatbot</h1>
-        <p class="sub">賢いAI 🧠（Gemini）と バカAI 🤪 を切り替えて話せる</p>
+        <h1>AI Chatbot</h1>
+        <p class="sub">賢いAIとバカAIを切り替えて話せる</p>
 
+        <!-- ===== APIキー設定 ===== -->
+        <div class="key-area">
+            <div class="key-label">Gemini API Key</div>
+            <div class="key-row">
+                <input type="text" id="apiKeyInput" placeholder="APIキーを入力してください" />
+                <button id="setKeyBtn">設定</button>
+            </div>
+            <div class="key-status" id="keyStatus">ステータス: <span class="not-set">未設定</span></div>
+        </div>
+
+        <!-- ===== モード切替 ===== -->
         <div class="mode-toggle">
             <button id="modeGenius" class="active">
-                🧠 賢いAI
+                賢いAI
                 <span class="badge genius">Gemini</span>
             </button>
             <button id="modeBaka">
-                🤪 バカAI
+                バカAI
                 <span class="badge baka">Baka</span>
             </button>
         </div>
 
         <div class="mode-indicator" id="modeIndicator">
-            🧠 <span class="genius-mode">賢いAIモード</span>（Geminiで本格会話）
+            <span class="genius-mode">賢いAIモード</span>（Geminiで本格会話）
         </div>
 
         <div class="chat-box" id="chatBox">
             <div class="msg bot">
-                👋 こんにちは！<br>
-                <span id="welcomeText">なんでも質問してみてね！</span>
+                こんにちは！<br>
+                なんでも質問してみてね！
                 <div class="time">今</div>
             </div>
         </div>
@@ -243,8 +314,8 @@
         </div>
 
         <div class="btn-row">
-            <button id="clearBtn">🗑️ 履歴クリア</button>
-            <button id="exportBtn">📥 履歴保存</button>
+            <button id="clearBtn">履歴クリア</button>
+            <button id="exportBtn">履歴保存</button>
         </div>
 
         <div class="footer">
@@ -254,32 +325,26 @@
 
     <script>
         // ================================================================
-        // ★★★ ここにあなたのAPIキーを設定してください ★★★
-        // ================================================================
-        const GEMINI_API_KEY = 'AQ.Ab8RN6IrtwkvbxX4qRTXRNdpWoNrWpbbWBCVzasbhU6nrO6p6A'; // ← ここを書き換える！
-        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-
-        // ================================================================
         // ★★★ バカAI（パターンマッチ） ★★★
         // ================================================================
         const bakaResponses = {
             'こんにちは|やあ|おはよう|こんばんは': [
-                'こんにちは！😊 今日はどんな日？',
+                'こんにちは！ 今日はどんな日？',
                 'やあ！元気にしてた？',
                 'お疲れ様！話しかけてくれてありがとう'
             ],
             'お疲れ|疲れた|眠い|つかれた': [
-                'お疲れ様！ゆっくり休んでね 😴',
+                'お疲れ様！ゆっくり休んでね',
                 '無理しないでね。適度に休憩が大事だよ！',
                 'お疲れさま。何か手伝えることある？'
             ],
             '元気|調子|どう?|気分': [
-                '元気だよ！話してくれて嬉しい！😄',
+                '元気だよ！話してくれて嬉しい！',
                 '絶好調！君はどう？',
                 'いつも以上に元気いっぱいだよ！'
             ],
             'ありがとう|感謝|thanks': [
-                'どういたしまして！😊 また何かあったら聞いてね！',
+                'どういたしまして！ また何かあったら聞いてね！',
                 'いつでもどうぞ！あなたの役に立てて嬉しいよ！'
             ],
             '名前|あなたの名前|お名前': [
@@ -287,12 +352,12 @@
                 '私はバカAI。賢いAIには負けるけど、愛はあるよ！'
             ],
             'バカ|あほ|まぬけ|間抜け': [
-                'そう言われると悲しいよ…でもバカだしね！😂',
+                'そう言われると悲しいよ…でもバカだしね！',
                 'バカでごめんね！でも愛されてるからいいの！'
             ],
             '賢い|頭いい|すごい|できる': [
                 'えへへ、褒めてくれるの？嬉しいけど、実はバカなんだよね！',
-                '賢く見える？それはきっと錯覚だよ！😄'
+                '賢く見える？それはきっと錯覚だよ！'
             ]
         };
 
@@ -306,7 +371,7 @@
             }
             const fallbacks = [
                 'なるほど！それについてもっと詳しく教えてくれる？（バカだからよくわかんないや）',
-                '🤔 うーん…バカには難しい質問だなあ！',
+                'うーん…バカには難しい質問だなあ！',
                 'ほほう！それでどうなったの？（実はよくわかってない）',
                 'いいね！それ、もっと深掘りしていきたいな！（適当）',
                 'バカだから難しいことはわかんないけど、君の話は好きだよ！'
@@ -317,12 +382,13 @@
         // ================================================================
         // ★★★ 賢いAI（Google Gemini） ★★★
         // ================================================================
-        async function getGeniusResponse(input) {
-            if (!GEMINI_API_KEY || GEMINI_API_KEY === 'AQ.Ab8RN6IrtwkvbxX4qRTXRNdpWoNrWpbbWBCVzasbhU6nrO6p6A') {
-                return '⚠️ Gemini APIキーが設定されていません。\nコード内の `GEMINI_API_KEY` にキーを設定してね！';
+        async function getGeniusResponse(input, apiKey) {
+            if (!apiKey) {
+                return 'APIキーが設定されていません。上部の入力欄にAPIキーを設定してください。';
             }
             try {
-                const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+                const response = await fetch(`${url}?key=${apiKey}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -340,14 +406,14 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    return `❌ APIエラー: ${error.error?.message || '不明なエラー'}`;
+                    return 'APIエラー: ' + (error.error?.message || '不明なエラー');
                 }
 
                 const data = await response.json();
                 return data.candidates[0].content.parts[0].text;
 
             } catch (error) {
-                return `❌ 通信エラー: ${error.message}`;
+                return '通信エラー: ' + error.message;
             }
         }
 
@@ -355,7 +421,11 @@
         // ★★★ UI制御 ★★★
         // ================================================================
         let currentMode = 'genius';
+        let currentApiKey = '';
 
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const setKeyBtn = document.getElementById('setKeyBtn');
+        const keyStatus = document.getElementById('keyStatus');
         const chatBox = document.getElementById('chatBox');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
@@ -364,34 +434,63 @@
         const modeGenius = document.getElementById('modeGenius');
         const modeBaka = document.getElementById('modeBaka');
         const modeIndicator = document.getElementById('modeIndicator');
-        const welcomeText = document.getElementById('welcomeText');
 
+        // ===== APIキー管理 =====
+        function loadApiKey() {
+            const saved = localStorage.getItem('gemini_api_key');
+            if (saved) {
+                currentApiKey = saved;
+                apiKeyInput.value = saved;
+                keyStatus.innerHTML = 'ステータス: <span class="set">設定済み</span>';
+            } else {
+                keyStatus.innerHTML = 'ステータス: <span class="not-set">未設定</span>';
+            }
+        }
+
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                currentApiKey = key;
+                localStorage.setItem('gemini_api_key', key);
+                keyStatus.innerHTML = 'ステータス: <span class="set">設定済み</span>';
+                alert('APIキーを保存しました！');
+            } else {
+                alert('APIキーを入力してください');
+            }
+        }
+
+        setKeyBtn.addEventListener('click', saveApiKey);
+        apiKeyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveApiKey();
+        });
+
+        // ===== モード切替 =====
         function setMode(mode) {
             currentMode = mode;
             modeGenius.classList.toggle('active', mode === 'genius');
             modeBaka.classList.toggle('active', mode === 'baka');
 
             if (mode === 'genius') {
-                modeIndicator.innerHTML = '🧠 <span class="genius-mode">賢いAIモード</span>（Geminiで本格会話）';
-                welcomeText.textContent = 'なんでも質問してみてね！（Geminiが答えるよ）';
+                modeIndicator.innerHTML = '<span class="genius-mode">賢いAIモード</span>（Geminiで本格会話）';
             } else {
-                modeIndicator.innerHTML = '🤪 <span class="baka-mode">バカAIモード</span>（パターンマッチで適当返答）';
-                welcomeText.textContent = 'バカだけど、愛はあるよ！😄';
+                modeIndicator.innerHTML = '<span class="baka-mode">バカAIモード</span>（パターンマッチで適当返答）';
             }
         }
 
         modeGenius.addEventListener('click', () => setMode('genius'));
         modeBaka.addEventListener('click', () => setMode('baka'));
 
+        // ===== メッセージ =====
         function addMessage(text, isUser) {
             const div = document.createElement('div');
             div.className = `msg ${isUser ? 'user' : 'bot'}`;
             const time = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-            div.innerHTML = `${text.replace(/\n/g, '<br>')}<div class="time">${time}</div>`;
+            div.innerHTML = text.replace(/\n/g, '<br>') + '<div class="time">' + time + '</div>';
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+        // ===== 送信 =====
         async function sendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
@@ -401,32 +500,33 @@
             userInput.focus();
 
             sendBtn.disabled = true;
-            sendBtn.innerHTML = '<span class="spinner"></span> 考え中...';
+            sendBtn.innerHTML = '考え中...';
 
             try {
                 let reply;
                 if (currentMode === 'genius') {
-                    reply = await getGeniusResponse(text);
+                    reply = await getGeniusResponse(text, currentApiKey);
                 } else {
                     await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
                     reply = getBakaResponse(text);
                 }
                 addMessage(reply, false);
             } catch (error) {
-                addMessage(`❌ エラー: ${error.message}`, false);
+                addMessage('エラー: ' + error.message, false);
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = '送信';
             }
         }
 
+        // ===== 履歴 =====
         function clearChat() {
             if (!confirm('会話履歴をクリアしますか？')) return;
             const modeLabel = currentMode === 'genius' ? '賢いAI' : 'バカAI';
             chatBox.innerHTML = `
                 <div class="msg bot">
-                    👋 履歴をクリアしたよ！<br>
-                    <span>${modeLabel}モードで再スタート！</span>
+                    履歴をクリアしたよ！<br>
+                    ${modeLabel}モードで再スタート！
                     <div class="time">今</div>
                 </div>
             `;
@@ -438,18 +538,19 @@
             items.forEach(msg => {
                 const isUser = msg.classList.contains('user');
                 const text = msg.textContent.replace(/\d{2}:\d{2}$/, '').trim();
-                messages.push(`${isUser ? '👤 あなた' : '🤖 AI'}: ${text}`);
+                messages.push((isUser ? 'あなた' : 'AI') + ': ' + text);
             });
-            const content = `【${currentMode === 'genius' ? '賢いAI' : 'バカAI'}モードの会話ログ】\n${'='.repeat(30)}\n${messages.join('\n')}`;
+            const content = '【' + (currentMode === 'genius' ? '賢いAI' : 'バカAI') + 'モードの会話ログ】\n' + '='.repeat(30) + '\n' + messages.join('\n');
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `chat_log_${currentMode}_${new Date().toISOString().slice(0,10)}.txt`;
+            a.download = 'chat_log_' + currentMode + '_' + new Date().toISOString().slice(0,10) + '.txt';
             a.click();
             URL.revokeObjectURL(url);
         }
 
+        // ===== イベント =====
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -460,6 +561,8 @@
         clearBtn.addEventListener('click', clearChat);
         exportBtn.addEventListener('click', exportChat);
 
+        // ===== 初期化 =====
+        loadApiKey();
         setMode('genius');
         userInput.focus();
     </script>
