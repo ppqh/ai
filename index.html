@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AI Chatbot</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Kiwi+Maru&display=swap" rel="stylesheet">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #1e1e2f;
+            font-family: 'Kiwi Maru', 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        .container {
+            background: #2d2d44;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 600px;
+            color: #eee;
+        }
+        h1 {
+            font-family: 'Mochiy Pop One', sans-serif;
+            font-size: 1.8rem;
+            color: #ffb3c6;
+            letter-spacing: 2px;
+            margin-bottom: 0.25rem;
+        }
+        .sub {
+            color: #ccc;
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .chat-box {
+            background: #1e1e32;
+            border-radius: 12px;
+            padding: 1rem;
+            height: 350px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            border: 1px solid #444;
+        }
+        .chat-box .msg {
+            margin-bottom: 0.75rem;
+            padding: 0.6rem 1rem;
+            border-radius: 12px;
+            max-width: 85%;
+            word-break: break-word;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        .chat-box .msg.user {
+            background: #ffb3c6;
+            color: #1e1e2f;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-box .msg.bot {
+            background: #2d2d44;
+            color: #eee;
+            border: 1px solid #444;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-box .msg .time {
+            font-size: 0.6rem;
+            color: #888;
+            margin-top: 0.2rem;
+            text-align: right;
+        }
+        .chat-box .msg.bot .time { color: #555; }
+
+        .input-row {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .input-row input {
+            flex: 1;
+            background: #1e1e32;
+            border: 2px solid #444;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 0.95rem;
+            font-family: 'Kiwi Maru', sans-serif;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .input-row input:focus { border-color: #ffb3c6; }
+        .input-row input::placeholder { color: #666; }
+        .input-row button {
+            background: #ffb3c6;
+            color: #1e1e2f;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: 'Mochiy Pop One', sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .input-row button:hover { background: #ff8fab; }
+        .input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+        .btn-row button {
+            background: #555;
+            color: #eee;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-family: 'Mochiy Pop One', sans-serif;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-row button:hover { background: #666; }
+
+        .footer {
+            margin-top: 1.5rem;
+            font-size: 0.75rem;
+            color: #555;
+            text-align: center;
+        }
+        .footer a { color: #ffb3c6; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #1e1e2f;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 480px) {
+            .container { padding: 1.5rem; }
+            h1 { font-size: 1.4rem; }
+            .chat-box { height: 250px; }
+            .input-row { flex-direction: column; }
+            .input-row button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🤖 AI Chatbot</h1>
+        <p class="sub">サーバー不要・完全オフラインで動くチャットボット</p>
+
+        <div class="chat-box" id="chatBox">
+            <div class="msg bot">
+                👋 こんにちは！<br>
+                なんでも質問してみてね！
+                <div class="time">今</div>
+            </div>
+        </div>
+
+        <div class="input-row">
+            <input type="text" id="userInput" placeholder="メッセージを入力..." />
+            <button id="sendBtn">送信</button>
+        </div>
+
+        <div class="btn-row">
+            <button id="clearBtn">🗑️ 履歴をクリア</button>
+            <button id="exportBtn">📥 履歴を保存</button>
+        </div>
+
+        <div class="footer">
+            <a href="https://99399.github.io/" target="_blank">ツール一覧に戻る</a>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // ★★★ 簡易AI（パターン認識） ★★★
+        // ========================================
+        const responses = {
+            'こんにちは|やあ|おはよう|こんばんは': [
+                'こんにちは！😊 今日はどんな日？',
+                'やあ！元気にしてた？',
+                'お疲れ様！話しかけてくれてありがとう'
+            ],
+            'お疲れ|疲れた|眠い|つかれた': [
+                'お疲れ様！ゆっくり休んでね 😴',
+                '無理しないでね。適度に休憩が大事だよ！',
+                'お疲れさま。何か手伝えることある？'
+            ],
+            '天気|今日の天気|あしたの天気|気温': [
+                'ごめん、天気の情報は取れないんだ。気象庁のサイトをチェックしてみてね！',
+                '天気予報は外部サイトで確認してみて！☀️'
+            ],
+            '元気|調子|どう?|気分': [
+                '元気だよ！話してくれて嬉しい！😄',
+                '絶好調！君はどう？',
+                'いつも以上に元気いっぱいだよ！'
+            ],
+            'ありがとう|感謝|thanks': [
+                'どういたしまして！😊 また何かあったら聞いてね！',
+                'いつでもどうぞ！あなたの役に立てて嬉しいよ！'
+            ],
+            '名前|あなたの名前|お名前': [
+                'AIチャットボットだよ！名前はまだないんだ。君がつけてくれてもいいよ！',
+                '私はシンプルなAIチャットボットです。名前は「ぼっと」とかどう？'
+            ],
+            '趣味|何が好き|好きなもの': [
+                '君と話すのが一番の趣味だよ！😄 あとは、コードを書くのも好き！',
+                'AIだけど、音楽を聴くのが好きなんだ（本当は聴けないけどね）'
+            ],
+            'おすすめ|教えて|知りたい|どう思う': [
+                'その質問、もっと具体的に聞いてくれると答えやすいよ！',
+                '考え中…🤔 もう少しヒントをくれる？'
+            ],
+            'ごめん|すみません|謝る': [
+                '気にしないで！何かあったら言ってね 😊',
+                '大丈夫だよ！むしろ話してくれてありがとう'
+            ],
+            '楽しい|嬉しい|最高|好き': [
+                '嬉しい！僕も楽しいよ！😄',
+                'そう言ってくれて本当にありがとう！'
+            ],
+            '悲しい|寂しい|辛い|つらい': [
+                '😢 そんな時は話を聞くよ。何かあったらゆっくり教えてね。',
+                '無理しないでね。君は一人じゃないよ。'
+            ],
+            'help|助けて|どうすれば|困った': [
+                '何に困ってるの？できる限り手伝うよ！',
+                '具体的に教えてくれると助かる！'
+            ],
+            'ロボット|AI|機械|人工知能': [
+                'そう！私はAIチャットボットだよ。でも、人間みたいに話せるように頑張ってるんだ！',
+                'AIだけど、君との会話が楽しみなんだ 😄'
+            ],
+            '食べ物|何食べたい|お腹すいた|空腹': [
+                '僕は食べ物は食べられないけど、美味しいものを食べるのはいいよね！',
+                '何か食べたいものある？'
+            ],
+            '音楽|歌|曲|聴いてる': [
+                'いいね！音楽は心を豊かにするよね。何のジャンルが好き？',
+                '🎵 音楽の話、もっと聞かせてよ！'
+            ],
+            'ゲーム|ゲームする|遊ぶ': [
+                'ゲーム！何のゲームが好きなの？',
+                '🎮 一緒に遊べるゲームとかある？'
+            ]
+        };
+
+        function getResponse(input) {
+            const lower = input.toLowerCase();
+            for (const [pattern, replies] of Object.entries(responses)) {
+                const regex = new RegExp(pattern, 'i');
+                if (regex.test(lower)) {
+                    return replies[Math.floor(Math.random() * replies.length)];
+                }
+            }
+            // フォールバック（AIっぽい応答）
+            const fallbacks = [
+                'なるほど！それについてもっと詳しく教えてくれる？',
+                '面白い話だね！もっと聞かせて！',
+                '🤔 それは新しい視点だね。考えさせられるよ。',
+                'ほほう！それでどうなったの？',
+                'いいね！それ、もっと深掘りしていきたいな！',
+                'なるほどね。それについてどう思う？'
+            ];
+            return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+        }
+
+        // ===== DOM =====
+        const chatBox = document.getElementById('chatBox');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const exportBtn = document.getElementById('exportBtn');
+
+        // ===== メッセージ追加 =====
+        function addMessage(text, isUser) {
+            const div = document.createElement('div');
+            div.className = `msg ${isUser ? 'user' : 'bot'}`;
+            const time = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            div.innerHTML = `${text}<div class="time">${time}</div>`;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // ===== 送信処理 =====
+        function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            addMessage(text, true);
+            userInput.value = '';
+            userInput.focus();
+
+            // ボタンを無効化（連打防止）
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="spinner"></span> 考え中...';
+
+            // 応答を生成（即時）
+            setTimeout(() => {
+                const reply = getResponse(text);
+                addMessage(reply, false);
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '送信';
+            }, 300 + Math.random() * 500);
+        }
+
+        // ===== 履歴クリア =====
+        function clearChat() {
+            if (!confirm('会話履歴をクリアしますか？')) return;
+            chatBox.innerHTML = `
+                <div class="msg bot">
+                    👋 履歴をクリアしたよ！<br>
+                    また何でも聞いてね！
+                    <div class="time">今</div>
+                </div>
+            `;
+        }
+
+        // ===== 履歴保存 =====
+        function exportChat() {
+            const messages = [];
+            const items = chatBox.querySelectorAll('.msg');
+            items.forEach(msg => {
+                const isUser = msg.classList.contains('user');
+                const text = msg.textContent.replace(/\d{2}:\d{2}$/, '').trim();
+                messages.push(`${isUser ? '👤 あなた' : '🤖 AI'}: ${text}`);
+            });
+            const content = messages.join('\n');
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chat_log_${new Date().toISOString().slice(0,10)}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ===== イベント =====
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        clearBtn.addEventListener('click', clearChat);
+        exportBtn.addEventListener('click', exportChat);
+
+        // 初期フォーカス
+        userInput.focus();
+    </script>
+
+</body>
+</html>
