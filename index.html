@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>AI Chat - Gemini/キチガイ</title>
+    <title>AI Chatbot - 賢い/バカ切り替え</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Kiwi+Maru&display=swap" rel="stylesheet">
 
@@ -253,16 +253,15 @@
     </div>
 
     <script>
-        // ========================================
-        // ★★★ Google Gemini API設定 ★★★
-        // ここにAPIキーを入れる！
-        // ========================================
-        const GEMINI_API_KEY = 'AQ.Ab8RN6I_8M5O98whWFpOv0deaBZKTiRQEbEIUCTovca0aepHWg';
+        // ================================================================
+        // ★★★ ここにあなたのAPIキーを設定してください ★★★
+        // ================================================================
+        const GEMINI_API_KEY = 'AQ.Ab8RN6IrtwkvbxX4qRTXRNdpWoNrWpbbWBCVzasbhU6nrO6p6A'; // ← ここを書き換える！
         const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
-        // ========================================
+        // ================================================================
         // ★★★ バカAI（パターンマッチ） ★★★
-        // ========================================
+        // ================================================================
         const bakaResponses = {
             'こんにちは|やあ|おはよう|こんばんは': [
                 'こんにちは！😊 今日はどんな日？',
@@ -315,11 +314,11 @@
             return fallbacks[Math.floor(Math.random() * fallbacks.length)];
         }
 
-        // ========================================
+        // ================================================================
         // ★★★ 賢いAI（Google Gemini） ★★★
-        // ========================================
+        // ================================================================
         async function getGeniusResponse(input) {
-            if (!GEMINI_API_KEY || GEMINI_API_KEY === 'AQ.Ab8RN6I_8M5O98whWFpOv0deaBZKTiRQEbEIUCTovca0aepHWg') {
+            if (!GEMINI_API_KEY || GEMINI_API_KEY === 'AQ.Ab8RN6IrtwkvbxX4qRTXRNdpWoNrWpbbWBCVzasbhU6nrO6p6A') {
                 return '⚠️ Gemini APIキーが設定されていません。\nコード内の `GEMINI_API_KEY` にキーを設定してね！';
             }
             try {
@@ -352,9 +351,9 @@
             }
         }
 
-        // ========================================
+        // ================================================================
         // ★★★ UI制御 ★★★
-        // ========================================
+        // ================================================================
         let currentMode = 'genius';
 
         const chatBox = document.getElementById('chatBox');
