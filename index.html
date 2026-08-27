@@ -94,6 +94,49 @@
         .key-area .key-status .set { color: #7bed9f; }
         .key-area .key-status .not-set { color: #ff6b6b; }
 
+        /* ===== APIキー取得ガイド（折りたたみ） ===== */
+        .guide-toggle {
+            background: none;
+            border: none;
+            color: #74b9ff;
+            font-size: 0.8rem;
+            font-family: 'Kiwi Maru', sans-serif;
+            cursor: pointer;
+            padding: 0.3rem 0;
+            text-decoration: underline;
+        }
+        .guide-toggle:hover { color: #5a9fd4; }
+
+        .guide-content {
+            display: none;
+            background: #1e1e32;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #aaa;
+            line-height: 1.8;
+            border: 1px solid #444;
+        }
+        .guide-content.show { display: block; }
+        .guide-content .step {
+            color: #ffb3c6;
+            font-weight: bold;
+        }
+        .guide-content .link {
+            color: #74b9ff;
+            text-decoration: none;
+        }
+        .guide-content .link:hover { text-decoration: underline; }
+        .guide-content .code {
+            background: #1a1a2e;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #7bed9f;
+            font-size: 0.8rem;
+        }
+
         /* ===== モード切替 ===== */
         .mode-toggle {
             display: flex;
@@ -282,6 +325,19 @@
                 <button id="setKeyBtn">設定</button>
             </div>
             <div class="key-status" id="keyStatus">ステータス: <span class="not-set">未設定</span></div>
+
+            <!-- ===== APIキー取得ガイド ===== -->
+            <button class="guide-toggle" id="guideToggle">APIキーの取得方法はこちら</button>
+            <div class="guide-content" id="guideContent">
+                <div><span class="step">1.</span> <a href="https://aistudio.google.com/" target="_blank" class="link">Google AI Studio</a> にアクセス</div>
+                <div><span class="step">2.</span> 右上の <span class="code">Get API key</span> をクリック</div>
+                <div><span class="step">3.</span> <span class="code">Create API key</span> をクリック</div>
+                <div><span class="step">4.</span> 適当な名前を付けて作成</div>
+                <div><span class="step">5.</span> 表示されたキーをコピーして上の入力欄に貼り付け</div>
+                <div style="margin-top:0.5rem;color:#888;font-size:0.75rem;">
+                    ※ APIキーは無料で発行できます（無料枠あり）
+                </div>
+            </div>
         </div>
 
         <!-- ===== モード切替 ===== -->
@@ -387,7 +443,7 @@
                 return 'APIキーが設定されていません。上部の入力欄にAPIキーを設定してください。';
             }
             try {
-                const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+                const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent';
                 const response = await fetch(`${url}?key=${apiKey}`, {
                     method: 'POST',
                     headers: {
@@ -434,6 +490,16 @@
         const modeGenius = document.getElementById('modeGenius');
         const modeBaka = document.getElementById('modeBaka');
         const modeIndicator = document.getElementById('modeIndicator');
+        const guideToggle = document.getElementById('guideToggle');
+        const guideContent = document.getElementById('guideContent');
+
+        // ===== ガイド表示切替 =====
+        guideToggle.addEventListener('click', () => {
+            guideContent.classList.toggle('show');
+            guideToggle.textContent = guideContent.classList.contains('show')
+                ? 'APIキーの取得方法を閉じる'
+                : 'APIキーの取得方法はこちら';
+        });
 
         // ===== APIキー管理 =====
         function loadApiKey() {
