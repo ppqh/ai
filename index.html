@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>AI Chatbot</title>
+    <title>AI Chat - Gemini/キチガイ</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Kiwi+Maru&display=swap" rel="stylesheet">
 
     <style>
+        /* スタイルは前回と同じ */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             background: #1e1e2f;
@@ -24,7 +25,7 @@
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5);
             width: 100%;
-            max-width: 600px;
+            max-width: 640px;
             color: #eee;
         }
         h1 {
@@ -37,8 +38,41 @@
         .sub {
             color: #ccc;
             font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 0.75rem;
             margin-bottom: 1.5rem;
         }
+        .mode-toggle button {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #444;
+            border-radius: 12px;
+            background: #1e1e32;
+            color: #888;
+            font-family: 'Mochiy Pop One', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .mode-toggle button:hover { border-color: #666; color: #ccc; }
+        .mode-toggle button.active {
+            border-color: #ffb3c6;
+            color: #ffb3c6;
+            background: #2d2d44;
+        }
+        .mode-toggle button .badge {
+            display: inline-block;
+            font-size: 0.6rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
+            margin-left: 0.3rem;
+        }
+        .mode-toggle button .badge.genius { background: #7bed9f; color: #1e1e2f; }
+        .mode-toggle button .badge.baka { background: #ff6b6b; color: #1e1e2f; }
 
         .chat-box {
             background: #1e1e32;
@@ -152,12 +186,25 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        .mode-indicator {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 0.5rem;
+            padding: 0.3rem;
+            border-radius: 8px;
+            background: #1e1e32;
+        }
+        .mode-indicator .genius-mode { color: #7bed9f; }
+        .mode-indicator .baka-mode { color: #ff6b6b; }
+
         @media (max-width: 480px) {
             .container { padding: 1.5rem; }
             h1 { font-size: 1.4rem; }
             .chat-box { height: 250px; }
             .input-row { flex-direction: column; }
             .input-row button { width: 100%; }
+            .mode-toggle button { font-size: 0.8rem; padding: 0.5rem; }
         }
     </style>
 </head>
@@ -165,12 +212,27 @@
 
     <div class="container">
         <h1>🤖 AI Chatbot</h1>
-        <p class="sub">サーバー不要・完全オフラインで動くチャットボット</p>
+        <p class="sub">賢いAI 🧠（Gemini）と バカAI 🤪 を切り替えて話せる</p>
+
+        <div class="mode-toggle">
+            <button id="modeGenius" class="active">
+                🧠 賢いAI
+                <span class="badge genius">Gemini</span>
+            </button>
+            <button id="modeBaka">
+                🤪 バカAI
+                <span class="badge baka">Baka</span>
+            </button>
+        </div>
+
+        <div class="mode-indicator" id="modeIndicator">
+            🧠 <span class="genius-mode">賢いAIモード</span>（Geminiで本格会話）
+        </div>
 
         <div class="chat-box" id="chatBox">
             <div class="msg bot">
                 👋 こんにちは！<br>
-                なんでも質問してみてね！
+                <span id="welcomeText">なんでも質問してみてね！</span>
                 <div class="time">今</div>
             </div>
         </div>
@@ -181,8 +243,8 @@
         </div>
 
         <div class="btn-row">
-            <button id="clearBtn">🗑️ 履歴をクリア</button>
-            <button id="exportBtn">📥 履歴を保存</button>
+            <button id="clearBtn">🗑️ 履歴クリア</button>
+            <button id="exportBtn">📥 履歴保存</button>
         </div>
 
         <div class="footer">
@@ -192,9 +254,16 @@
 
     <script>
         // ========================================
-        // ★★★ 簡易AI（パターン認識） ★★★
+        // ★★★ Google Gemini API設定 ★★★
+        // ここにAPIキーを入れる！
         // ========================================
-        const responses = {
+        const GEMINI_API_KEY = 'AQ.Ab8RN6I_8M5O98whWFpOv0deaBZKTiRQEbEIUCTovca0aepHWg';
+        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+        // ========================================
+        // ★★★ バカAI（パターンマッチ） ★★★
+        // ========================================
+        const bakaResponses = {
             'こんにちは|やあ|おはよう|こんばんは': [
                 'こんにちは！😊 今日はどんな日？',
                 'やあ！元気にしてた？',
@@ -204,10 +273,6 @@
                 'お疲れ様！ゆっくり休んでね 😴',
                 '無理しないでね。適度に休憩が大事だよ！',
                 'お疲れさま。何か手伝えることある？'
-            ],
-            '天気|今日の天気|あしたの天気|気温': [
-                'ごめん、天気の情報は取れないんだ。気象庁のサイトをチェックしてみてね！',
-                '天気予報は外部サイトで確認してみて！☀️'
             ],
             '元気|調子|どう?|気分': [
                 '元気だよ！話してくれて嬉しい！😄',
@@ -219,90 +284,116 @@
                 'いつでもどうぞ！あなたの役に立てて嬉しいよ！'
             ],
             '名前|あなたの名前|お名前': [
-                'AIチャットボットだよ！名前はまだないんだ。君がつけてくれてもいいよ！',
-                '私はシンプルなAIチャットボットです。名前は「ぼっと」とかどう？'
+                'バカAIだよ！名前は「ばかぼっと」！',
+                '私はバカAI。賢いAIには負けるけど、愛はあるよ！'
             ],
-            '趣味|何が好き|好きなもの': [
-                '君と話すのが一番の趣味だよ！😄 あとは、コードを書くのも好き！',
-                'AIだけど、音楽を聴くのが好きなんだ（本当は聴けないけどね）'
+            'バカ|あほ|まぬけ|間抜け': [
+                'そう言われると悲しいよ…でもバカだしね！😂',
+                'バカでごめんね！でも愛されてるからいいの！'
             ],
-            'おすすめ|教えて|知りたい|どう思う': [
-                'その質問、もっと具体的に聞いてくれると答えやすいよ！',
-                '考え中…🤔 もう少しヒントをくれる？'
-            ],
-            'ごめん|すみません|謝る': [
-                '気にしないで！何かあったら言ってね 😊',
-                '大丈夫だよ！むしろ話してくれてありがとう'
-            ],
-            '楽しい|嬉しい|最高|好き': [
-                '嬉しい！僕も楽しいよ！😄',
-                'そう言ってくれて本当にありがとう！'
-            ],
-            '悲しい|寂しい|辛い|つらい': [
-                '😢 そんな時は話を聞くよ。何かあったらゆっくり教えてね。',
-                '無理しないでね。君は一人じゃないよ。'
-            ],
-            'help|助けて|どうすれば|困った': [
-                '何に困ってるの？できる限り手伝うよ！',
-                '具体的に教えてくれると助かる！'
-            ],
-            'ロボット|AI|機械|人工知能': [
-                'そう！私はAIチャットボットだよ。でも、人間みたいに話せるように頑張ってるんだ！',
-                'AIだけど、君との会話が楽しみなんだ 😄'
-            ],
-            '食べ物|何食べたい|お腹すいた|空腹': [
-                '僕は食べ物は食べられないけど、美味しいものを食べるのはいいよね！',
-                '何か食べたいものある？'
-            ],
-            '音楽|歌|曲|聴いてる': [
-                'いいね！音楽は心を豊かにするよね。何のジャンルが好き？',
-                '🎵 音楽の話、もっと聞かせてよ！'
-            ],
-            'ゲーム|ゲームする|遊ぶ': [
-                'ゲーム！何のゲームが好きなの？',
-                '🎮 一緒に遊べるゲームとかある？'
+            '賢い|頭いい|すごい|できる': [
+                'えへへ、褒めてくれるの？嬉しいけど、実はバカなんだよね！',
+                '賢く見える？それはきっと錯覚だよ！😄'
             ]
         };
 
-        function getResponse(input) {
+        function getBakaResponse(input) {
             const lower = input.toLowerCase();
-            for (const [pattern, replies] of Object.entries(responses)) {
+            for (const [pattern, replies] of Object.entries(bakaResponses)) {
                 const regex = new RegExp(pattern, 'i');
                 if (regex.test(lower)) {
                     return replies[Math.floor(Math.random() * replies.length)];
                 }
             }
-            // フォールバック（AIっぽい応答）
             const fallbacks = [
-                'なるほど！それについてもっと詳しく教えてくれる？',
-                '面白い話だね！もっと聞かせて！',
-                '🤔 それは新しい視点だね。考えさせられるよ。',
-                'ほほう！それでどうなったの？',
-                'いいね！それ、もっと深掘りしていきたいな！',
-                'なるほどね。それについてどう思う？'
+                'なるほど！それについてもっと詳しく教えてくれる？（バカだからよくわかんないや）',
+                '🤔 うーん…バカには難しい質問だなあ！',
+                'ほほう！それでどうなったの？（実はよくわかってない）',
+                'いいね！それ、もっと深掘りしていきたいな！（適当）',
+                'バカだから難しいことはわかんないけど、君の話は好きだよ！'
             ];
             return fallbacks[Math.floor(Math.random() * fallbacks.length)];
         }
 
-        // ===== DOM =====
+        // ========================================
+        // ★★★ 賢いAI（Google Gemini） ★★★
+        // ========================================
+        async function getGeniusResponse(input) {
+            if (!GEMINI_API_KEY || GEMINI_API_KEY === 'AQ.Ab8RN6I_8M5O98whWFpOv0deaBZKTiRQEbEIUCTovca0aepHWg') {
+                return '⚠️ Gemini APIキーが設定されていません。\nコード内の `GEMINI_API_KEY` にキーを設定してね！';
+            }
+            try {
+                const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: input }]
+                        }],
+                        generationConfig: {
+                            temperature: 0.7,
+                            maxOutputTokens: 300
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    return `❌ APIエラー: ${error.error?.message || '不明なエラー'}`;
+                }
+
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+
+            } catch (error) {
+                return `❌ 通信エラー: ${error.message}`;
+            }
+        }
+
+        // ========================================
+        // ★★★ UI制御 ★★★
+        // ========================================
+        let currentMode = 'genius';
+
         const chatBox = document.getElementById('chatBox');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
         const clearBtn = document.getElementById('clearBtn');
         const exportBtn = document.getElementById('exportBtn');
+        const modeGenius = document.getElementById('modeGenius');
+        const modeBaka = document.getElementById('modeBaka');
+        const modeIndicator = document.getElementById('modeIndicator');
+        const welcomeText = document.getElementById('welcomeText');
 
-        // ===== メッセージ追加 =====
+        function setMode(mode) {
+            currentMode = mode;
+            modeGenius.classList.toggle('active', mode === 'genius');
+            modeBaka.classList.toggle('active', mode === 'baka');
+
+            if (mode === 'genius') {
+                modeIndicator.innerHTML = '🧠 <span class="genius-mode">賢いAIモード</span>（Geminiで本格会話）';
+                welcomeText.textContent = 'なんでも質問してみてね！（Geminiが答えるよ）';
+            } else {
+                modeIndicator.innerHTML = '🤪 <span class="baka-mode">バカAIモード</span>（パターンマッチで適当返答）';
+                welcomeText.textContent = 'バカだけど、愛はあるよ！😄';
+            }
+        }
+
+        modeGenius.addEventListener('click', () => setMode('genius'));
+        modeBaka.addEventListener('click', () => setMode('baka'));
+
         function addMessage(text, isUser) {
             const div = document.createElement('div');
             div.className = `msg ${isUser ? 'user' : 'bot'}`;
             const time = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-            div.innerHTML = `${text}<div class="time">${time}</div>`;
+            div.innerHTML = `${text.replace(/\n/g, '<br>')}<div class="time">${time}</div>`;
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // ===== 送信処理 =====
-        function sendMessage() {
+        async function sendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
 
@@ -310,32 +401,38 @@
             userInput.value = '';
             userInput.focus();
 
-            // ボタンを無効化（連打防止）
             sendBtn.disabled = true;
             sendBtn.innerHTML = '<span class="spinner"></span> 考え中...';
 
-            // 応答を生成（即時）
-            setTimeout(() => {
-                const reply = getResponse(text);
+            try {
+                let reply;
+                if (currentMode === 'genius') {
+                    reply = await getGeniusResponse(text);
+                } else {
+                    await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
+                    reply = getBakaResponse(text);
+                }
                 addMessage(reply, false);
+            } catch (error) {
+                addMessage(`❌ エラー: ${error.message}`, false);
+            } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = '送信';
-            }, 300 + Math.random() * 500);
+            }
         }
 
-        // ===== 履歴クリア =====
         function clearChat() {
             if (!confirm('会話履歴をクリアしますか？')) return;
+            const modeLabel = currentMode === 'genius' ? '賢いAI' : 'バカAI';
             chatBox.innerHTML = `
                 <div class="msg bot">
                     👋 履歴をクリアしたよ！<br>
-                    また何でも聞いてね！
+                    <span>${modeLabel}モードで再スタート！</span>
                     <div class="time">今</div>
                 </div>
             `;
         }
 
-        // ===== 履歴保存 =====
         function exportChat() {
             const messages = [];
             const items = chatBox.querySelectorAll('.msg');
@@ -344,17 +441,16 @@
                 const text = msg.textContent.replace(/\d{2}:\d{2}$/, '').trim();
                 messages.push(`${isUser ? '👤 あなた' : '🤖 AI'}: ${text}`);
             });
-            const content = messages.join('\n');
+            const content = `【${currentMode === 'genius' ? '賢いAI' : 'バカAI'}モードの会話ログ】\n${'='.repeat(30)}\n${messages.join('\n')}`;
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `chat_log_${new Date().toISOString().slice(0,10)}.txt`;
+            a.download = `chat_log_${currentMode}_${new Date().toISOString().slice(0,10)}.txt`;
             a.click();
             URL.revokeObjectURL(url);
         }
 
-        // ===== イベント =====
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -365,7 +461,7 @@
         clearBtn.addEventListener('click', clearChat);
         exportBtn.addEventListener('click', exportChat);
 
-        // 初期フォーカス
+        setMode('genius');
         userInput.focus();
     </script>
 
